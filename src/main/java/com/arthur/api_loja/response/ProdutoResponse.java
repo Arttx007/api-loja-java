@@ -6,12 +6,14 @@ public class ProdutoResponse {
     private String nome;
     private Double preco;
     private Integer quantidade;
+    private String imagemUrl;
 
-    public ProdutoResponse(Long id, String nome, Double preco, Integer quantidade) {
+    public ProdutoResponse(Long id, String nome, Double preco, Integer quantidade, String imagemUrl) {
         this.id = id;
         this.nome = nome;
         this.preco = preco;
         this.quantidade = quantidade;
+        this.imagemUrl = imagemUrl;
     }
 
     public Long getId() {
@@ -28,5 +30,9 @@ public class ProdutoResponse {
 
     public Integer getQuantidade() {
         return quantidade;
+    }
+
+    public String getImagemUrl() {
+        return imagemUrl;
     }
 }

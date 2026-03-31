@@ -24,4 +24,6 @@ public class Produto {
     private Double preco;
 
     private Integer quantidade;
+
+    private String imagemUrl;
 }

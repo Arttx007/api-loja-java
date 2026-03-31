@@ -33,6 +33,7 @@ public class ProdutoService {
             existente.setNome(produto.getNome());
             existente.setPreco(produto.getPreco());
             existente.setQuantidade(produto.getQuantidade());
+            existente.setImagemUrl(produto.getImagemUrl());
             return repository.save(existente);
         }
 

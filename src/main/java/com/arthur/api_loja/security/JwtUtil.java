@@ -1,29 +1,38 @@
 package com.arthur.api_loja.security;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "segredo";
+    private static final String SECRET = "segredo-super-seguro-para-jwt-artbyte-2026-com-chave-longa-para-hs512-token-seguro";
+    private static final long EXPIRATION_MILLIS = 86_400_000L;
+
+    private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     public String gerarToken(String email, String role) {
         return Jwts.builder()
-                .setSubject(email)
+                .subject(email)
                 .claim("role", role)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(SignatureAlgorithm.HS512, SECRET)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MILLIS))
+                .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
     }
 
     public Claims validarToken(String token) {
         return Jwts.parser()
-                .setSigningKey(SECRET)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

@@ -1,13 +1,13 @@
 package com.arthur.api_loja.produto;
 
-import com.arthur.api_loja.response.ApiResponse;
+import com.arthur.api_loja.dw.DwService;
 import com.arthur.api_loja.exception.ResourceNotFoundException;
+import com.arthur.api_loja.response.ApiResponse;
 import com.arthur.api_loja.response.ProdutoResponse;
-import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
-import static java.util.stream.Collectors.toList;
+import java.util.List;
 
 @RestController
 @RequestMapping({"/produtos", "/produto"})
@@ -15,9 +15,11 @@ import static java.util.stream.Collectors.toList;
 public class ProdutoController {
 
     private final ProdutoService service;
+    private final DwService dwService;
 
-    public ProdutoController(ProdutoService service){
+    public ProdutoController(ProdutoService service, DwService dwService) {
         this.service = service;
+        this.dwService = dwService;
     }
 
     @PostMapping
@@ -26,15 +28,10 @@ public class ProdutoController {
         produto.setNome(dto.getNome());
         produto.setPreco(dto.getPreco());
         produto.setQuantidade(dto.getQuantidade());
+        produto.setImagemUrl(dto.getImagemUrl());
 
         Produto salvo = service.criar(produto);
-
-        ProdutoResponse response = new ProdutoResponse(
-                salvo.getId(),
-                salvo.getNome(),
-                salvo.getPreco(),
-                salvo.getQuantidade()
-        );
+        dwService.sincronizarProduto(salvo);
 
         return new ApiResponse<>(
                 "sucesso",
@@ -45,14 +42,14 @@ public class ProdutoController {
 
     @GetMapping
     public ApiResponse<List<ProdutoResponse>> listar() {
-
         List<ProdutoResponse> lista = service.listar()
                 .stream()
                 .map(p -> new ProdutoResponse(
                         p.getId(),
                         p.getNome(),
                         p.getPreco(),
-                        p.getQuantidade()
+                        p.getQuantidade(),
+                        p.getImagemUrl()
                 ))
                 .toList();
 
@@ -65,18 +62,14 @@ public class ProdutoController {
 
     @GetMapping("/{id}")
     public ApiResponse<ProdutoResponse> buscar(@PathVariable Long id) {
-
         Produto produto = service.buscarPorId(id);
-
-        if (produto == null) {
-            throw new ResourceNotFoundException("Produto não encontrado");
-        }
 
         ProdutoResponse response = new ProdutoResponse(
                 produto.getId(),
                 produto.getNome(),
                 produto.getPreco(),
-                produto.getQuantidade()
+                produto.getQuantidade(),
+                produto.getImagemUrl()
         );
 
         return new ApiResponse<>(
@@ -95,18 +88,22 @@ public class ProdutoController {
         produtoParaAtualizar.setNome(dto.getNome());
         produtoParaAtualizar.setPreco(dto.getPreco());
         produtoParaAtualizar.setQuantidade(dto.getQuantidade());
+        produtoParaAtualizar.setImagemUrl(dto.getImagemUrl());
 
         Produto atualizado = service.atualizar(id, produtoParaAtualizar);
 
         if (atualizado == null) {
-            throw new ResourceNotFoundException("Produto não encontrado");
+            throw new ResourceNotFoundException("Produto nao encontrado");
         }
 
-        ProdutoResponse  response = new ProdutoResponse(
-          atualizado.getId(),
+        dwService.sincronizarProduto(atualizado);
+
+        ProdutoResponse response = new ProdutoResponse(
+                atualizado.getId(),
                 atualizado.getNome(),
                 atualizado.getPreco(),
-                atualizado.getQuantidade()
+                atualizado.getQuantidade(),
+                atualizado.getImagemUrl()
         );
 
         return new ApiResponse<>(
@@ -121,10 +118,11 @@ public class ProdutoController {
         Produto produto = service.buscarPorId(id);
 
         if (produto == null) {
-            throw new ResourceNotFoundException("Produto não encontrado");
+            throw new ResourceNotFoundException("Produto nao encontrado");
         }
 
         service.deletar(id);
+        dwService.removerProduto(id);
 
         return new ApiResponse<>(
                 "sucesso",
