@@ -1,7 +1,9 @@
 package com.arthur.api_loja.usuario;
 
 import com.arthur.api_loja.response.ApiResponse;
+import com.arthur.api_loja.response.LoginResponse;
 import com.arthur.api_loja.response.UsuarioResponse;
+import com.arthur.api_loja.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,26 +16,35 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final AuthService service;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(AuthService service){
+    public AuthController(AuthService service, JwtUtil jwtUtil) {
         this.service = service;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UsuarioResponse>> login(@RequestBody LoginDTO dto){
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginDTO dto) {
         Usuario usuario = service.login(dto);
 
-        if (usuario == null){
+        if (usuario == null) {
             return ResponseEntity.status(401).body(new ApiResponse<>(
                     "erro",
-                    "Email ou senha inválidos",
+                    "Email ou senha invalidos",
                     null
             ));
         }
 
-        UsuarioResponse response = new UsuarioResponse(
+        String token = jwtUtil.gerarToken(
+                usuario.getEmail(),
+                usuario.getRole()
+        );
+
+        LoginResponse response = new LoginResponse(
                 usuario.getId(),
-                usuario.getEmail()
+                usuario.getEmail(),
+                usuario.getRole(),
+                token
         );
 
         return ResponseEntity.ok(new ApiResponse<>(
@@ -44,12 +55,19 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<UsuarioResponse>> register(@RequestBody Usuario usuario){
+    public ResponseEntity<ApiResponse<UsuarioResponse>> register(@RequestBody Usuario usuario) {
+        usuario.setRole("CLIENTE");
         Usuario salvo = service.salvar(usuario);
-        UsuarioResponse response = new UsuarioResponse(salvo.getId(), salvo.getEmail());
+
+        UsuarioResponse response = new UsuarioResponse(
+                salvo.getId(),
+                salvo.getEmail(),
+                salvo.getRole()
+        );
+
         return ResponseEntity.ok(new ApiResponse<>(
                 "sucesso",
-                "Usuário registrado com sucesso",
+                "Usuario registrado com sucesso",
                 response
         ));
     }
@@ -58,31 +76,83 @@ public class AuthController {
     public ResponseEntity<ApiResponse<List<UsuarioResponse>>> listarUsuarios() {
         List<UsuarioResponse> usuarios = service.listarUsuarios()
                 .stream()
-                .map(u -> new UsuarioResponse(u.getId(), u.getEmail()))
+                .map(u -> new UsuarioResponse(
+                        u.getId(),
+                        u.getEmail(),
+                        u.getRole()
+                ))
                 .collect(Collectors.toList());
+
         return ResponseEntity.ok(new ApiResponse<>(
                 "sucesso",
-                "Usuários carregados com sucesso",
+                "Usuarios carregados com sucesso",
                 usuarios
         ));
     }
 
-    @DeleteMapping("/usuarios/{id}")
-    public ResponseEntity<ApiResponse<Void>> deletar(@PathVariable Long id){
-
-        boolean deletado = service.deletar(id);
-
-        if(!deletado){
-            return ResponseEntity.status(404).body(new ApiResponse<>(
+    @PostMapping("/usuarios")
+    public ResponseEntity<ApiResponse<UsuarioResponse>> atualizarPorPost(
+            @RequestBody Usuario usuarioAtualizado
+    ) {
+        if (usuarioAtualizado.getId() == null) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
                     "erro",
-                    "Usuário não encontrado",
+                    "Id do usuario obrigatorio",
                     null
             ));
         }
+
+        return montarRespostaAtualizacao(
+                service.atualizar(usuarioAtualizado.getId(), usuarioAtualizado)
+        );
+    }
+
+    @PutMapping("/usuarios/{id}")
+    public ResponseEntity<ApiResponse<UsuarioResponse>> atualizar(
+            @PathVariable Long id,
+            @RequestBody Usuario usuarioAtualizado
+    ) {
+        return montarRespostaAtualizacao(service.atualizar(id, usuarioAtualizado));
+    }
+
+    @DeleteMapping("/usuarios/{id}")
+    public ResponseEntity<ApiResponse<Void>> deletar(@PathVariable Long id) {
+        boolean deletado = service.deletar(id);
+
+        if (!deletado) {
+            return ResponseEntity.status(404).body(new ApiResponse<>(
+                    "erro",
+                    "Usuario nao encontrado",
+                    null
+            ));
+        }
+
         return ResponseEntity.ok(new ApiResponse<>(
                 "sucesso",
-                "Usuário deletado com sucesso",
+                "Usuario deletado com sucesso",
                 null
+        ));
+    }
+
+    private ResponseEntity<ApiResponse<UsuarioResponse>> montarRespostaAtualizacao(Usuario usuario) {
+        if (usuario == null) {
+            return ResponseEntity.status(404).body(new ApiResponse<>(
+                    "erro",
+                    "Usuario nao encontrado",
+                    null
+            ));
+        }
+
+        UsuarioResponse response = new UsuarioResponse(
+                usuario.getId(),
+                usuario.getEmail(),
+                usuario.getRole()
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                "sucesso",
+                "Usuario atualizado com sucesso",
+                response
         ));
     }
 }

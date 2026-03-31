@@ -49,4 +49,20 @@ public class AuthService {
             repository.deleteById(id);
             return true;
         }
+        public Usuario atualizar(Long id, Usuario dadosAtualizados){
+            Usuario usuario = repository.findById(id).orElse(null);
+
+            if (usuario == null) {
+                return null;
+            }
+
+            usuario.setEmail(dadosAtualizados.getEmail());
+            usuario.setRole(dadosAtualizados.getRole());
+
+            if (dadosAtualizados.getSenha() != null && !dadosAtualizados.getSenha().isBlank()) {
+                usuario.setSenha(encoder.encode(dadosAtualizados.getSenha()));
+            }
+
+            return repository.save(usuario);
+        }
     }
