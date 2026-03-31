@@ -10,7 +10,8 @@ import java.util.List;
 import static java.util.stream.Collectors.toList;
 
 @RestController
-@RequestMapping("/produtos")
+@RequestMapping({"/produtos", "/produto"})
+@CrossOrigin(origins = "*")
 public class ProdutoController {
 
     private final ProdutoService service;
