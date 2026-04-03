@@ -17,6 +17,7 @@ public class Produto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "produto_id")
     private Long id;
 
     private String nome;
@@ -25,5 +26,9 @@ public class Produto {
 
     private Integer quantidade;
 
+    @Column(name = "disponivel")
+    private Boolean disponivel;
+
+    @Column(name = "imagem_url")
     private String imagemUrl;
 }
