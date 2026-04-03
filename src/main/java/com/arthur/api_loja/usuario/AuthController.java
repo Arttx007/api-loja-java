@@ -4,6 +4,7 @@ import com.arthur.api_loja.response.ApiResponse;
 import com.arthur.api_loja.response.LoginResponse;
 import com.arthur.api_loja.response.UsuarioResponse;
 import com.arthur.api_loja.security.JwtUtil;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +43,12 @@ public class AuthController {
 
         LoginResponse response = new LoginResponse(
                 usuario.getId(),
+                usuario.getNome(),
                 usuario.getEmail(),
+                usuario.getFotoUrl(),
+                usuario.getFotoZoom(),
+                usuario.getFotoPosX(),
+                usuario.getFotoPosY(),
                 usuario.getRole(),
                 token
         );
@@ -61,7 +67,12 @@ public class AuthController {
 
         UsuarioResponse response = new UsuarioResponse(
                 salvo.getId(),
+                salvo.getNome(),
                 salvo.getEmail(),
+                salvo.getFotoUrl(),
+                salvo.getFotoZoom(),
+                salvo.getFotoPosX(),
+                salvo.getFotoPosY(),
                 salvo.getRole()
         );
 
@@ -78,7 +89,12 @@ public class AuthController {
                 .stream()
                 .map(u -> new UsuarioResponse(
                         u.getId(),
+                        u.getNome(),
                         u.getEmail(),
+                        u.getFotoUrl(),
+                        u.getFotoZoom(),
+                        u.getFotoPosX(),
+                        u.getFotoPosY(),
                         u.getRole()
                 ))
                 .collect(Collectors.toList());
@@ -104,6 +120,46 @@ public class AuthController {
 
         return montarRespostaAtualizacao(
                 service.atualizar(usuarioAtualizado.getId(), usuarioAtualizado)
+        );
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UsuarioResponse>> usuarioLogado(Authentication authentication) {
+        Usuario usuario = service.buscarPorEmail(authentication.getName());
+
+        if (usuario == null) {
+            return ResponseEntity.status(404).body(new ApiResponse<>(
+                    "erro",
+                    "Usuario nao encontrado",
+                    null
+            ));
+        }
+
+        UsuarioResponse response = new UsuarioResponse(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getFotoUrl(),
+                usuario.getFotoZoom(),
+                usuario.getFotoPosX(),
+                usuario.getFotoPosY(),
+                usuario.getRole()
+        );
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                "sucesso",
+                "Usuario carregado com sucesso",
+                response
+        ));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UsuarioResponse>> atualizarUsuarioLogado(
+            Authentication authentication,
+            @RequestBody Usuario usuarioAtualizado
+    ) {
+        return montarRespostaAtualizacao(
+                service.atualizarConta(authentication.getName(), usuarioAtualizado)
         );
     }
 
@@ -145,7 +201,12 @@ public class AuthController {
 
         UsuarioResponse response = new UsuarioResponse(
                 usuario.getId(),
+                usuario.getNome(),
                 usuario.getEmail(),
+                usuario.getFotoUrl(),
+                usuario.getFotoZoom(),
+                usuario.getFotoPosX(),
+                usuario.getFotoPosY(),
                 usuario.getRole()
         );
 

@@ -86,6 +86,7 @@ public class DwService {
     public void sincronizarCliente(Usuario usuario) {
         DwCliente dwCliente = new DwCliente();
         dwCliente.setUsuarioId(usuario.getId());
+        dwCliente.setNome(usuario.getNome());
         dwCliente.setEmail(usuario.getEmail());
         dwCliente.setRole(usuario.getRole());
         dwCliente.setAtivo(true);

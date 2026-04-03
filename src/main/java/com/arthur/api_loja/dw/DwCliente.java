@@ -15,6 +15,7 @@ public class DwCliente {
     @Id
     private Long usuarioId;
 
+    private String nome;
     private String email;
     private String role;
     private Boolean ativo;

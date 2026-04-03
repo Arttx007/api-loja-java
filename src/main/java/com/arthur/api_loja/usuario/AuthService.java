@@ -20,8 +20,28 @@ public class AuthService {
     }
 
     public Usuario salvar(Usuario usuario) {
+        if (usuario.getNome() == null || usuario.getNome().isBlank()) {
+            throw new IllegalArgumentException("Nome obrigatorio");
+        }
+
         if (repository.existsByEmail(usuario.getEmail())) {
             throw new IllegalArgumentException("Ja existe um usuario com este email");
+        }
+
+        if (usuario.getRole() == null || usuario.getRole().isBlank()) {
+            usuario.setRole("CLIENTE");
+        }
+
+        if (usuario.getFotoZoom() == null || usuario.getFotoZoom() <= 0) {
+            usuario.setFotoZoom(1.0);
+        }
+
+        if (usuario.getFotoPosX() == null) {
+            usuario.setFotoPosX(50);
+        }
+
+        if (usuario.getFotoPosY() == null) {
+            usuario.setFotoPosY(50);
         }
 
         usuario.setSenha(encoder.encode(usuario.getSenha()));
@@ -31,7 +51,11 @@ public class AuthService {
     }
 
     public Usuario login(LoginDTO dto) {
-        Usuario usuario = repository.findTopByEmailOrderByIdDesc(dto.getEmail()).orElse(null);
+        String identificador = dto.getEmail() == null ? "" : dto.getEmail().trim();
+
+        Usuario usuario = repository.findTopByEmailOrderByIdDesc(identificador)
+                .or(() -> repository.findTopByNomeOrderByIdDesc(identificador))
+                .orElse(null);
 
         if (usuario == null) {
             return null;
@@ -73,8 +97,42 @@ public class AuthService {
             return null;
         }
 
-        usuario.setEmail(dadosAtualizados.getEmail());
-        usuario.setRole(dadosAtualizados.getRole());
+        if (dadosAtualizados.getNome() != null && !dadosAtualizados.getNome().isBlank()) {
+            usuario.setNome(dadosAtualizados.getNome());
+        }
+
+        if (dadosAtualizados.getEmail() != null && !dadosAtualizados.getEmail().isBlank()) {
+            String emailAtualizado = dadosAtualizados.getEmail().trim();
+            boolean mudouEmail = usuario.getEmail() == null
+                    || !usuario.getEmail().equalsIgnoreCase(emailAtualizado);
+
+            if (mudouEmail && repository.existsByEmailAndIdNot(emailAtualizado, id)) {
+                throw new IllegalArgumentException("Ja existe um usuario com este email");
+            }
+
+            usuario.setEmail(emailAtualizado);
+        }
+
+        if (dadosAtualizados.getRole() != null && !dadosAtualizados.getRole().isBlank()) {
+            usuario.setRole(dadosAtualizados.getRole());
+        }
+
+        if (dadosAtualizados.getFotoUrl() != null) {
+            String fotoUrlAtualizada = dadosAtualizados.getFotoUrl().trim();
+            usuario.setFotoUrl(fotoUrlAtualizada.isBlank() ? null : fotoUrlAtualizada);
+        }
+
+        if (dadosAtualizados.getFotoZoom() != null) {
+            usuario.setFotoZoom(dadosAtualizados.getFotoZoom());
+        }
+
+        if (dadosAtualizados.getFotoPosX() != null) {
+            usuario.setFotoPosX(dadosAtualizados.getFotoPosX());
+        }
+
+        if (dadosAtualizados.getFotoPosY() != null) {
+            usuario.setFotoPosY(dadosAtualizados.getFotoPosY());
+        }
 
         if (dadosAtualizados.getSenha() != null && !dadosAtualizados.getSenha().isBlank()) {
             usuario.setSenha(encoder.encode(dadosAtualizados.getSenha()));
@@ -83,5 +141,19 @@ public class AuthService {
         Usuario atualizado = repository.save(usuario);
         dwService.sincronizarCliente(atualizado);
         return atualizado;
+    }
+
+    public Usuario buscarPorEmail(String email) {
+        return repository.findTopByEmailOrderByIdDesc(email).orElse(null);
+    }
+
+    public Usuario atualizarConta(String email, Usuario dadosAtualizados) {
+        Usuario usuario = buscarPorEmail(email);
+
+        if (usuario == null) {
+            return null;
+        }
+
+        return atualizar(usuario.getId(), dadosAtualizados);
     }
 }
